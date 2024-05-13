@@ -30,11 +30,19 @@ jobs:
             -X POST -d '{"query":"{ user(login: \"your-github-username\") { contributionsCollection { pullRequestContributionsByRepository(maxRepositories: 100) { repository { name url owner { login } } contributions(first: 100) { pullRequest { merged } } } } } }"}' \
             https://api.github.com/graphql > contributions.json
 
+          # Print the response for debugging
+          echo 'Response from GitHub GraphQL API:'
+          cat contributions.json
+
           # Extract repository names and URLs for merged pull requests to external repositories
           echo 'Extracting repository names and URLs...'
           node -e "
           const fs = require('fs');
           const data = JSON.parse(fs.readFileSync('contributions.json', 'utf8'));
+          if (!data.data || !data.data.user) {
+            console.error('Invalid response structure:', JSON.stringify(data, null, 2));
+            process.exit(1);
+          }
           const contributions = new Set();
           data.data.user.contributionsCollection.pullRequestContributionsByRepository.forEach(repoContribution => {
             const repo = repoContribution.repository;
