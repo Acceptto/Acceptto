@@ -5,6 +5,7 @@ Welcome to my GitHub profile!
 ## Contributions
 
 <!-- CONTRIBUTIONS_LIST -->
+
 <!-- END_CONTRIBUTIONS_LIST -->
 
 ## Other Sections
