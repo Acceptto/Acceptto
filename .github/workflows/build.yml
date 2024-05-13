@@ -27,7 +27,7 @@ jobs:
           # Fetch contributions using GitHub GraphQL API
           echo 'Fetching contributions...'
           curl -H "Authorization: bearer ${{ secrets.PROFILE_TOKEN }}" \
-            -X POST -d '{"query":"{ user(login: \"your-github-username\") { contributionsCollection { pullRequestContributionsByRepository(maxRepositories: 100) { repository { name url owner { login } } contributions(first: 100) { pullRequest { mergedAt } } } } } }"}' \
+            -X POST -d '{"query":"{ user(login: \"your-github-username\") { contributionsCollection { pullRequestContributions(first: 100) { nodes { pullRequest { repository { name url owner { login } } merged } } } } } }"}' \
             https://api.github.com/graphql > contributions.json
 
           # Print the response for debugging
@@ -44,14 +44,11 @@ jobs:
             process.exit(1);
           }
           const contributions = new Set();
-          data.data.user.contributionsCollection.pullRequestContributionsByRepository.forEach(repoContribution => {
-            const repo = repoContribution.repository;
-            if (repo.owner.login !== 'your-github-username') {
-              repoContribution.contributions.forEach(contribution => {
-                if (contribution.pullRequest.mergedAt) {
-                  contributions.add(\`- [\${repo.name}](\${repo.url})\`);
-                }
-              });
+          data.data.user.contributionsCollection.pullRequestContributions.nodes.forEach(contribution => {
+            const pullRequest = contribution.pullRequest;
+            const repo = pullRequest.repository;
+            if (repo.owner.login !== 'your-github-username' && pullRequest.merged) {
+              contributions.add(\`- [\${repo.name}](\${repo.url})\`);
             }
           });
           const contributionsList = Array.from(contributions).join('\n');
