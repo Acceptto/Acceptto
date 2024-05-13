@@ -27,20 +27,24 @@ jobs:
           # Fetch contributions using GitHub GraphQL API
           echo 'Fetching contributions...'
           curl -H "Authorization: bearer ${{ secrets.PROFILE_TOKEN }}" \
-            -X POST -d '{"query":"{ user(login: \"your-github-username\") { contributionsCollection { commitContributionsByRepository(maxRepositories: 100) { repository { name url } } pullRequestContributionsByRepository(maxRepositories: 100) { repository { name url } } } } }"}' \
+            -X POST -d '{"query":"{ user(login: \"your-github-username\") { contributionsCollection { pullRequestContributionsByRepository(maxRepositories: 100) { repository { name url owner { login } } contributions(first: 100) { pullRequest { merged } } } } } }"}' \
             https://api.github.com/graphql > contributions.json
 
-          # Extract repository names and URLs
+          # Extract repository names and URLs for merged pull requests to external repositories
           echo 'Extracting repository names and URLs...'
           node -e "
           const fs = require('fs');
           const data = JSON.parse(fs.readFileSync('contributions.json', 'utf8'));
           const contributions = new Set();
-          data.data.user.contributionsCollection.commitContributionsByRepository.forEach(contribution => {
-            contributions.add(\`- [\${contribution.repository.name}](\${contribution.repository.url})\`);
-          });
-          data.data.user.contributionsCollection.pullRequestContributionsByRepository.forEach(contribution => {
-            contributions.add(\`- [\${contribution.repository.name}](\${contribution.repository.url})\`);
+          data.data.user.contributionsCollection.pullRequestContributionsByRepository.forEach(repoContribution => {
+            const repo = repoContribution.repository;
+            if (repo.owner.login !== 'your-github-username') {
+              repoContribution.contributions.forEach(contribution => {
+                if (contribution.pullRequest.merged) {
+                  contributions.add(\`- [\${repo.name}](\${repo.url})\`);
+                }
+              });
+            }
           });
           const contributionsList = Array.from(contributions).join('\n');
           let readmeContent = fs.readFileSync('README.md', 'utf8');
