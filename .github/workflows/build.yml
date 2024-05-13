@@ -1,0 +1,56 @@
+name: Update Profile README
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # Runs every day at midnight
+  push:
+    branches:
+      - main
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+
+      - name: Fetch contributions and update README
+        run: |
+          # Fetch contributions using GitHub GraphQL API
+          echo 'Fetching contributions...'
+          curl -H "Authorization: bearer ${{ secrets.PROFILE_TOKEN }}" \
+            -X POST -d '{"query":"{ user(login: \"your-github-username\") { contributionsCollection { commitContributionsByRepository(maxRepositories: 100) { repository { name url } } pullRequestContributionsByRepository(maxRepositories: 100) { repository { name url } } } } }"}' \
+            https://api.github.com/graphql > contributions.json
+
+          # Extract repository names and URLs
+          echo 'Extracting repository names and URLs...'
+          node -e "
+          const fs = require('fs');
+          const data = JSON.parse(fs.readFileSync('contributions.json', 'utf8'));
+          const contributions = new Set();
+          data.data.user.contributionsCollection.commitContributionsByRepository.forEach(contribution => {
+            contributions.add(\`- [\${contribution.repository.name}](\${contribution.repository.url})\`);
+          });
+          data.data.user.contributionsCollection.pullRequestContributionsByRepository.forEach(contribution => {
+            contributions.add(\`- [\${contribution.repository.name}](\${contribution.repository.url})\`);
+          });
+          const contributionsList = Array.from(contributions).join('\n');
+          let readmeContent = fs.readFileSync('README.md', 'utf8');
+          readmeContent = readmeContent.replace(/<!-- CONTRIBUTIONS_LIST -->[\\s\\S]*<!-- END_CONTRIBUTIONS_LIST -->/, \`<!-- CONTRIBUTIONS_LIST -->\n\${contributionsList}\n<!-- END_CONTRIBUTIONS_LIST -->\`);
+          fs.writeFileSync('README.md', readmeContent);
+          "
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add README.md
+          git commit -m 'Update profile README with latest contributions'
+          git push
+        env:
+          PROFILE_TOKEN: ${{ secrets.PROFILE_TOKEN }}

@@ -1,5 +1,16 @@
 ### Hi there 👋
 
+Welcome to my GitHub profile!
+
+## Contributions
+
+<!-- CONTRIBUTIONS_LIST -->
+<!-- END_CONTRIBUTIONS_LIST -->
+
+## Other Sections
+
+More content here...
+
 <!--
 **Acceptto/Acceptto** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
