@@ -27,7 +27,7 @@ jobs:
           # Fetch contributions using GitHub GraphQL API
           echo 'Fetching contributions...'
           curl -H "Authorization: bearer ${{ secrets.PROFILE_TOKEN }}" \
-            -X POST -d '{"query":"{ user(login: \"your-github-username\") { contributionsCollection { pullRequestContributionsByRepository(maxRepositories: 100) { repository { name url owner { login } } contributions(first: 100) { pullRequest { merged } } } } } }"}' \
+            -X POST -d '{"query":"{ user(login: \"your-github-username\") { contributionsCollection { pullRequestContributionsByRepository(maxRepositories: 100) { repository { name url owner { login } } contributions(first: 100) { pullRequest { mergedAt } } } } } }"}' \
             https://api.github.com/graphql > contributions.json
 
           # Print the response for debugging
@@ -48,7 +48,7 @@ jobs:
             const repo = repoContribution.repository;
             if (repo.owner.login !== 'your-github-username') {
               repoContribution.contributions.forEach(contribution => {
-                if (contribution.pullRequest.merged) {
+                if (contribution.pullRequest.mergedAt) {
                   contributions.add(\`- [\${repo.name}](\${repo.url})\`);
                 }
               });
